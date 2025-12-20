@@ -15,11 +15,16 @@ echo ========================================
 echo.
 
 cd /d "%~dp0"
+cd ..
 
 :: Vérifier l'environnement virtuel
 if not exist ".venv\Scripts\python.exe" (
     color 0C
     echo [ERREUR] Environnement virtuel introuvable !
+    echo.
+    echo Dossier courant : %CD%
+    echo Le dossier .venv\Scripts\python.exe n'existe pas.
+    echo.
     pause
     exit /b 1
 )
@@ -31,12 +36,12 @@ call .venv\Scripts\activate.bat
 :: Installer PyInstaller si nécessaire
 echo.
 echo [2/4] Vérification de PyInstaller...
-pip show pyinstaller >nul 2>&1
+.venv\Scripts\python.exe -m pip show pyinstaller >nul 2>&1
 if errorlevel 1 (
-    echo PyInstaller non installé. Installation en cours...
-    pip install pyinstaller
+    echo PyInstaller non installe. Installation en cours...
+    .venv\Scripts\python.exe -m pip install pyinstaller
 ) else (
-    echo PyInstaller déjà installé.
+    echo PyInstaller deja installe.
 )
 
 :: Créer le dossier de sortie
@@ -49,11 +54,10 @@ echo [3/4] Compilation de l'application...
 echo Cela peut prendre plusieurs minutes...
 echo.
 
-pyinstaller --name="Assembleur_DXF_DWG" ^
+.venv\Scripts\pyinstaller.exe --name="Assembleur_DXF_DWG" ^
     --onefile ^
     --windowed ^
-    --icon=NONE ^
-    --add-data=".;." ^
+    --add-data="assembleur_dxf_dwg.py;." ^
     --hidden-import=ezdxf ^
     --hidden-import=ezdxf.addons ^
     --hidden-import=PyQt5 ^
@@ -64,7 +68,11 @@ pyinstaller --name="Assembleur_DXF_DWG" ^
 if errorlevel 1 (
     color 0C
     echo.
-    echo [ERREUR] La compilation a échoué !
+    echo [ERREUR] La compilation a echoue !
+    echo.
+    echo Verifiez que tous les modules sont installes :
+    echo   pip install -r requirements.txt
+    echo.
     pause
     exit /b 1
 )

@@ -13,13 +13,14 @@ Write-Host " Chargement en cours..."  -ForegroundColor Yellow
 Write-Host "========================================"  -ForegroundColor Cyan
 Write-Host ""
 
-# Se déplacer vers le dossier du script
-Set-Location $PSScriptRoot
+# Se déplacer vers le dossier racine du projet
+Set-Location (Split-Path $PSScriptRoot -Parent)
 
 # Vérifier si l'environnement virtuel existe
 if (-Not (Test-Path ".\.venv\Scripts\python.exe")) {
     Write-Host "[ERREUR] Environnement virtuel Python introuvable !" -ForegroundColor Red
     Write-Host ""
+    Write-Host "Dossier courant : $(Get-Location)" -ForegroundColor Yellow
     Write-Host "Le dossier .venv\Scripts\python.exe n'existe pas." -ForegroundColor Yellow
     Write-Host "Veuillez installer l'environnement virtuel avant de continuer." -ForegroundColor Yellow
     Write-Host ""

@@ -162,14 +162,14 @@ class Worker(QThread):
     finished_ok = pyqtSignal(str)   # message
     finished_err = pyqtSignal(str)  # message
 
-    def __init__(self, archive_folder, directories, output_folder, do_convert, oda_path, dwg_version):
+    def __init__(self, archive_folder, directories, output_folder, do_cleanup=False, open_in_second_instance=False, convert_before_open=False):
         super().__init__()
         self.archive_folder = (archive_folder or "").strip()
         self.directories = directories or []
         self.output_folder = output_folder
-        self.do_convert = do_convert
-        self.oda_path = (oda_path or "").strip()
-        self.dwg_version = (dwg_version or "ACAD2018").strip()
+        self.do_cleanup = do_cleanup
+        self.open_in_second_instance = bool(open_in_second_instance)
+        self.convert_before_open = bool(convert_before_open)
         self._stop_requested = False
     
     def stop(self):
@@ -287,41 +287,16 @@ class Worker(QThread):
                 return
             
             self.log.emit(f"🧩 Fusion terminée → {output_dxf}")
-            final_file = output_dxf  # Fichier final à ouvrir
 
-            # ---- 4) Conversion optionnelle en DWG via ODA File Converter ----
-            if self.do_convert:
-                if not self.oda_path or not os.path.isfile(self.oda_path):
-                    raise FileNotFoundError(
-                        "Chemin vers ODA File Converter invalide.\n"
-                        "Désactivez la conversion DWG ou indiquez le bon exécutable."
-                    )
-                self.log.emit("🔁 Conversion DXF → DWG avec ODA File Converter…")
-                self.convert_to_dwg(self.oda_path, output_dxf, self.output_folder, self.dwg_version)
-                output_dwg = os.path.join(self.output_folder, "assemblage.dwg")
-                if os.path.isfile(output_dwg):
-                    self.log.emit(f"✅ DWG généré : {output_dwg}")
-                    # S'assurer que le fichier DWG n'est pas en lecture seule
-                    try:
-                        os.chmod(output_dwg, 0o666)
-                    except Exception:
-                        pass
-                    final_file = output_dwg  # Ouvrir le DWG plutôt que le DXF
-                else:
-                    self.log.emit("⚠️ Conversion exécutée, mais DWG introuvable. "
-                                  "Vérifiez la version/syntaxe d'ODA.")
-            else:
-                self.log.emit("ℹ️ Conversion DWG désactivée (DXF uniquement).")
-
-            # ---- 5) Ouverture automatique dans AutoCAD avec zoom ----
+            # ---- 4) Ouverture automatique dans AutoCAD avec zoom ----
             try:
-                self.log.emit(f"🚀 Ouverture du fichier dans AutoCAD : {final_file}")
-                self.open_in_autocad_with_zoom(final_file)
+                self.log.emit(f"🚀 Ouverture du fichier dans AutoCAD : {output_dxf}")
+                self.open_in_autocad_with_zoom(output_dxf, self.open_in_second_instance, self.convert_before_open)
             except Exception as e:
                 self.log.emit(f"⚠️ Impossible d'ouvrir automatiquement : {e}")
                 # Fallback: ouverture simple sans zoom
                 try:
-                    os.startfile(final_file)
+                    os.startfile(output_dxf)
                 except Exception:
                     pass
 
@@ -339,14 +314,25 @@ class Worker(QThread):
             self.finished_err.emit(f"❌ Erreur: {e}\n{traceback.format_exc()}")
 
     # ---------- Sous-étapes ----------
-    def open_in_autocad_with_zoom(self, filepath):
-        """Ouvre le fichier dans AutoCAD en espace objet (Model) et effectue un zoom étendu."""
+    def open_in_autocad_with_zoom(self, filepath, use_second_instance=False, convert_before_open=False):
+        """Ouvre le fichier dans AutoCAD (modèle) et applique un zoom étendu.
+
+        Args:
+            filepath: Chemin du fichier à ouvrir (DXF)
+            use_second_instance: Si True, ouvre le fichier dans une seconde instance AutoCAD
+            convert_before_open: Si True, convertit en DWG via AutoCAD avant de zoomer
+        """
         try:
             import win32com.client
             
             # Connexion à AutoCAD via COM
             try:
-                acad = win32com.client.Dispatch("AutoCAD.Application")
+                if use_second_instance:
+                    # DispatchEx force une nouvelle instance AutoCAD
+                    acad = win32com.client.DispatchEx("AutoCAD.Application")
+                    self.log.emit("   🆕 Ouverture dans une seconde instance AutoCAD")
+                else:
+                    acad = win32com.client.Dispatch("AutoCAD.Application")
             except Exception:
                 # Si AutoCAD n'est pas en cours, on le démarre
                 acad = win32com.client.Dispatch("AutoCAD.Application")
@@ -354,25 +340,43 @@ class Worker(QThread):
             acad.Visible = True
             self.log.emit("   📐 AutoCAD connecté")
             
-            # Ouvrir le document
+            target_path = filepath
+            # Ouvrir le document (DXF)
             doc = acad.Documents.Open(filepath)
             self.log.emit(f"   📂 Document ouvert : {os.path.basename(filepath)}")
             
             # Attendre que le document soit chargé
-            time.sleep(1)
-            
-            # Basculer vers l'espace objet (Model Space)
-            try:
-                # Activer l'espace objet
-                doc.ActiveSpace = 1  # 1 = Model Space, 0 = Paper Space
-                doc.MSpace = True    # Activer Model Space dans la fenêtre
-                self.log.emit("   📦 Espace objet (Model Space) activé")
-            except Exception as e:
-                self.log.emit(f"   ⚠️ Activation espace objet: {e}")
+            time.sleep(0.5)
+
+            # Conversion en DWG si demandé (via AutoCAD)
+            if convert_before_open:
+                try:
+                    dwg_path = str(Path(filepath).with_suffix(".dwg"))
+                    # SAVEAS 2018 vers DWG
+                    cmd = f'_.SAVEAS 2018 "{dwg_path}"\n'
+                    acad.ActiveDocument.SendCommand(cmd)
+                    self.log.emit(f"   💾 Conversion DXF -> DWG demandée: {dwg_path}")
+                    time.sleep(1.5)
+                    try:
+                        doc.Close(False)
+                    except Exception:
+                        pass
+                    # Réouvrir le DWG pour zoom
+                    doc = acad.Documents.Open(dwg_path)
+                    target_path = dwg_path
+                    self.log.emit("   🔄 DWG réouvert pour le zoom")
+                except Exception as e:
+                    self.log.emit(f"   ⚠️ Conversion DWG via AutoCAD impossible: {e}")
+
+            # Rester en espace objet (Model)
+            self.log.emit("   📦 Espace objet (Model)")
             
             # Effectuer un zoom étendu (ZOOM EXTENT)
-            acad.ActiveDocument.SendCommand("_.ZOOM _E ")
-            self.log.emit("   🔍 Zoom étendu appliqué")
+            try:
+                acad.ActiveDocument.SendCommand("_.ZOOM _E \n")
+                self.log.emit("   🔍 Zoom étendu appliqué")
+            except Exception as e:
+                self.log.emit(f"   ⚠️ Zoom étendu impossible: {e}")
             
         except ImportError:
             logger.warning("Module win32com non disponible")
@@ -433,6 +437,79 @@ class Worker(QThread):
                 self.progress.emit(5 + int(35 * i / max(1, total)))
         return dxf_paths
 
+    def cleanup_dxf(self, dxf_path: str) -> bool:
+        """Nettoie un fichier DXF en supprimant les éléments inutilisés.
+        
+        Args:
+            dxf_path: Chemin vers le fichier DXF à nettoyer
+            
+        Returns:
+            True si le nettoyage a réussi, False sinon
+        """
+        try:
+            doc = ezdxf.readfile(dxf_path)
+            
+            # Compter les éléments avant nettoyage
+            before_blocks = len(doc.blocks)
+            before_styles = len(doc.styles)
+            before_layers = len(doc.layers)
+            before_linetypes = len(doc.linetypes)
+            
+            # Purger les blocs inutilisés
+            for block in list(doc.blocks):
+                if block.name.startswith('*'):
+                    continue  # Garder les blocs système
+                try:
+                    doc.blocks.delete_block(block.name, ignore_on_delete_error=True)
+                except Exception:
+                    pass
+            
+            # Purger les calques inutilisés (garder layer 0)
+            msp = doc.modelspace()
+            used_layers = set()
+            for entity in msp.query():
+                used_layers.add(entity.dxf.layer)
+            
+            for layer in list(doc.layers):
+                if layer.dxf.name not in ('0', used_layers) and layer.dxf.name not in used_layers:
+                    try:
+                        doc.layers.remove(layer.dxf.name)
+                    except Exception:
+                        pass
+            
+            # Purger les styles de texte inutilisés
+            used_styles = set()
+            for entity in msp.query():
+                if hasattr(entity.dxf, 'style'):
+                    used_styles.add(entity.dxf.style)
+            
+            for style in list(doc.styles):
+                if style.dxf.name not in ('Standard', used_styles) and style.dxf.name not in used_styles:
+                    try:
+                        doc.styles.remove(style.dxf.name)
+                    except Exception:
+                        pass
+            
+            # Compter après nettoyage
+            after_blocks = len(doc.blocks)
+            after_styles = len(doc.styles)
+            after_layers = len(doc.layers)
+            after_linetypes = len(doc.linetypes)
+            
+            # Sauvegarder si modifications
+            if (before_blocks != after_blocks or before_styles != after_styles or 
+                before_layers != after_layers):
+                doc.saveas(dxf_path)
+                self.log.emit(f"   🧹 Nettoyé: {before_blocks-after_blocks} bloc(s), "
+                            f"{before_styles-after_styles} style(s), "
+                            f"{before_layers-after_layers} calque(s) supprimé(s)")
+            
+            return True
+        except Exception as e:
+            logger.warning(f"Erreur nettoyage {dxf_path}: {e}")
+            self.log.emit(f"⚠️ Impossible de nettoyer {os.path.basename(dxf_path)}: {e}")
+            return False
+
     def merge_dxfs(self, dxf_paths: List[str], output_dxf: str) -> None:
         """Fusionne tous les DXF en conservant leurs coordonnées d'origine (pour plans cadastre géoréférencés).
         
@@ -451,6 +528,10 @@ class Worker(QThread):
         for idx, path in enumerate(dxf_paths, start=1):
             if self.is_stopped():
                 return
+            
+            # Nettoyage optionnel du DXF avant fusion
+            if self.do_cleanup:
+                self.cleanup_dxf(path)
             
             try:
                 doc_src = ezdxf.readfile(path)
@@ -493,36 +574,18 @@ class Worker(QThread):
         self.log.emit(f"📄 Total entités importées : {imported_entities}")
         self.log.emit(f"🗺️ Plan cadastre assemblé avec coordonnées géographiques conservées")
 
-    def convert_to_dwg(self, oda_path, input_dxf, output_folder, dwg_version):
-        """
-        Appel ODA File Converter en ligne de commande.
-        La plupart des versions attendent 'répertoire entrée' et 'répertoire sortie'.
-        On place donc le DXF dans un dossier temporaire et on convertit le dossier.
-        """
-        tmp_in_dir = tempfile.mkdtemp(prefix="oda_in_")
-        tmp_dxf = os.path.join(tmp_in_dir, os.path.basename(input_dxf))
-        # Copie du DXF dans le dossier temp
-        with open(input_dxf, "rb") as f_in, open(tmp_dxf, "wb") as f_out:
-            f_out.write(f_in.read())
-
-        # Commande standard ODA (peut varier selon version) :
-        # ODAFileConverter.exe "inDir" "outDir" "ACAD2018" "DWG" /r
-        cmd = f'"{oda_path}" "{tmp_in_dir}" "{output_folder}" "{dwg_version}" "DWG" /r'
-        self.log.emit(f"CMD: {cmd}")
-        subprocess.run(cmd, shell=True)
-        self.progress.emit(95)
-
 
 # ---------- Interface ----------
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Assembleur DXF → DWG - © C.L Pour les amis @ SpieCitynetwork")
-        self.resize(600, 400)
+        self.setWindowTitle("Assembleur DXF → DWG - © C.L @ SpieCitynetwork")
+        self.resize(600, 800)
         
         self.worker = None
 
-        self.worker = None
+        # --- Menu Bar ---
+        self.create_menu_bar()
 
         # --- Widgets sources ---
         self.arch_line = QLineEdit()
@@ -533,17 +596,18 @@ class MainWindow(QMainWindow):
         self.archives_list = QListWidget()
 
         # --- Destination ---
-        default_output = os.path.join(os.path.expanduser("~"), "Documents", "DXF_DWG_Output")
-        self.out_line = QLineEdit(default_output)
+        self.default_output = os.path.join(os.path.expanduser("~"), "Documents", "DXF_DWG_Output")
+        self.out_line = QLineEdit(self.default_output)
         self.btn_out = QPushButton("Parcourir…")
         self.btn_out.clicked.connect(self.select_output)
 
-        # --- Conversion ODA ---
-        self.convert_chk = QCheckBox("Convertir en DWG (ODA File Converter)")
-        self.oda_line = QLineEdit()
-        self.btn_oda = QPushButton("Parcourir…")
-        self.btn_oda.clicked.connect(self.select_oda)
-        self.version_line = QLineEdit("ACAD2018")
+        # --- Options de traitement ---
+        self.cleanup_chk = QCheckBox("Nettoyer les DXF (supprimer éléments inutilisés)")
+        self.cleanup_chk.setChecked(True)
+        self.second_instance_chk = QCheckBox("Ouvrir dans une seconde instance AutoCAD (Model)")
+        self.second_instance_chk.setToolTip("Force l'ouverture dans une nouvelle instance AutoCAD, toujours en Model Space")
+        self.convert_before_open_chk = QCheckBox("Convertir en DWG avant ouverture AutoCAD")
+        self.convert_before_open_chk.setToolTip("Utilise AutoCAD pour sauvegarder en DWG avant d'appliquer le zoom")
 
         # --- Progression & log ---
         self.progress = QProgressBar()
@@ -557,6 +621,9 @@ class MainWindow(QMainWindow):
         self.btn_stop = QPushButton("⏹ Arrêter")
         self.btn_stop.clicked.connect(self.stop_job)
         self.btn_stop.setEnabled(False)
+
+        self.btn_reset = QPushButton("↺ Réinitialiser")
+        self.btn_reset.clicked.connect(self.reset_form)
 
         # --- Layout ---
         main_layout = QVBoxLayout()
@@ -583,17 +650,13 @@ class MainWindow(QMainWindow):
         dest_layout.setColumnStretch(1, 1)
         dest_group.setLayout(dest_layout)
 
-        # Groupe Conversion
-        conv_group = QGroupBox("🔄 Conversion DWG (optionnel)")
-        conv_layout = QGridLayout()
-        conv_layout.addWidget(self.convert_chk, 0, 0, 1, 3)
-        conv_layout.addWidget(QLabel("ODA File Converter :"), 1, 0)
-        conv_layout.addWidget(self.oda_line, 1, 1)
-        conv_layout.addWidget(self.btn_oda, 1, 2)
-        conv_layout.addWidget(QLabel("Version DWG :"), 2, 0)
-        conv_layout.addWidget(self.version_line, 2, 1)
-        conv_layout.setColumnStretch(1, 1)
-        conv_group.setLayout(conv_layout)
+        # Groupe Options
+        options_group = QGroupBox("⚙️ Options de traitement")
+        options_layout = QVBoxLayout()
+        options_layout.addWidget(self.cleanup_chk)
+        options_layout.addWidget(self.second_instance_chk)
+        options_layout.addWidget(self.convert_before_open_chk)
+        options_group.setLayout(options_layout)
 
         # Groupe Progression
         progress_group = QGroupBox("📊 Progression")
@@ -612,12 +675,13 @@ class MainWindow(QMainWindow):
         buttons_layout.addStretch()
         buttons_layout.addWidget(self.btn_run)
         buttons_layout.addWidget(self.btn_stop)
+        buttons_layout.addWidget(self.btn_reset)
         buttons_layout.addStretch()
 
         # Assemblage
         main_layout.addWidget(source_group)
         main_layout.addWidget(dest_group)
-        main_layout.addWidget(conv_group)
+        main_layout.addWidget(options_group)
         main_layout.addWidget(progress_group)
         main_layout.addWidget(log_group, 1)
         main_layout.addLayout(buttons_layout)
@@ -625,6 +689,70 @@ class MainWindow(QMainWindow):
         container = QWidget()
         container.setLayout(main_layout)
         self.setCentralWidget(container)
+
+    # --- Menu Bar ---
+    def create_menu_bar(self):
+        """Crée la barre de menu avec un onglet Aide."""
+        menubar = self.menuBar()
+        
+        # Menu Aide
+        help_menu = menubar.addMenu("&Aide")
+        
+        # Action À propos
+        about_action = QAction("À &propos", self)
+        about_action.setShortcut("F1")
+        about_action.triggered.connect(self.show_about)
+        help_menu.addAction(about_action)
+        
+        # Action Guide d'utilisation
+        guide_action = QAction("&Guide d'utilisation", self)
+        guide_action.triggered.connect(self.show_guide)
+        help_menu.addAction(guide_action)
+    
+    def show_about(self):
+        """Affiche la fenêtre À propos."""
+        about_text = """
+        <h2>Assembleur DXF → DWG</h2>
+        <p><b>Version:</b> 1.0.0</p>
+        <p><b>Auteur:</b> © C.L @ SpieCitynetwork</p>
+        <hr>
+        <p>Outil d'assemblage de fichiers DXF.</p>
+        <p>Fonctionnalités principales :</p>
+        <ul>
+            <li>Extraction automatique d'archives .tar.bz2</li>
+            <li>Fusion de fichiers DXF multiples</li>
+            <li>Conservation des coordonnées géographiques</li>
+        </ul>
+        <p><b>Coder en Python:</b> → PyQt5, ezdxf</p>
+        """
+        QMessageBox.about(self, "À propos de l'Assembleur DXF → DWG", about_text)
+    
+    def show_guide(self):
+        """Affiche le guide d'utilisation rapide."""
+        guide_text = """
+        <h2>Guide d'utilisation rapide</h2>
+        <hr>
+        <h3>1. Source des fichiers</h3>
+        <p>Sélectionnez le dossier contenant vos archives .tar.bz2.<br>
+        Les archives seront automatiquement détectées et listées.</p>
+        
+        <h3>2. Destination</h3>
+        <p>Choisissez le dossier où sera enregistré le fichier assemblé.<br>
+        Par défaut: Documents/DXF_DWG_Output</p>
+        
+        <h3>3. Lancement</h3>
+        <p>Cliquez sur "▶ Lancer" pour démarrer le traitement.<br>
+        Le journal affichera la progression en temps réel.</p>
+        
+        <p><b>Résultat:</b> Le fichier "assemblage.dxf" contiendra<br>
+        tous les DXF fusionnés avec leurs coordonnées d'origine préservées.</p>
+        """
+        msg = QMessageBox(self)
+        msg.setWindowTitle("Guide d'utilisation")
+        msg.setTextFormat(Qt.RichText)
+        msg.setText(guide_text)
+        msg.setIcon(QMessageBox.Information)
+        msg.exec_()
 
     # --- Callbacks UI ---
     def select_archive_folder(self):
@@ -644,15 +772,6 @@ class MainWindow(QMainWindow):
         if folder:
             self.out_line.setText(folder)
 
-    def select_oda(self):
-        # Sur Windows : *.exe ; ailleurs : tous fichiers
-        path, _ = QFileDialog.getOpenFileName(
-            self, "Choisir ODAFileConverter", "",
-            "Exécutables (*.exe);;Tous les fichiers (*)"
-        )
-        if path:
-            self.oda_line.setText(path)
-
     def append_log(self, txt: str):
         """Ajoute un message au journal."""
         self.log.append(txt)
@@ -660,9 +779,6 @@ class MainWindow(QMainWindow):
     def run_job(self):
         archive_folder = self.arch_line.text().strip()
         output_folder = self.out_line.text().strip()
-        do_convert = self.convert_chk.isChecked()
-        oda_path = self.oda_line.text().strip()
-        dwg_version = self.version_line.text().strip() or "ACAD2018"
 
         # Validation des entrées
         if not archive_folder:
@@ -687,22 +803,15 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Erreur dossier sortie",
                                 f"Impossible de créer/accéder au dossier : {output_folder}")
             return
-        if do_convert and not oda_path:
-            ret = QMessageBox.question(
-                self, "ODA manquant",
-                "Chemin vers ODA File Converter non indiqué.\n"
-                "Voulez-vous lancer uniquement la fusion DXF ?",
-                QMessageBox.Yes | QMessageBox.No
-            )
-            if ret == QMessageBox.No:
-                return
-            do_convert = False
 
         self.progress.setValue(0)
         self.log.clear()
         self.append_log("🔧 Lancement du traitement…")
 
-        self.worker = Worker(archive_folder, [], output_folder, do_convert, oda_path, dwg_version)
+        do_cleanup = self.cleanup_chk.isChecked()
+        open_in_second_instance = self.second_instance_chk.isChecked()
+        convert_before_open = self.convert_before_open_chk.isChecked()
+        self.worker = Worker(archive_folder, [], output_folder, do_cleanup, open_in_second_instance, convert_before_open)
         self.worker.log.connect(self.append_log)
         self.worker.progress.connect(self.progress.setValue)
         self.worker.finished_ok.connect(self.on_finished_ok)
@@ -717,6 +826,23 @@ class MainWindow(QMainWindow):
         if self.worker and self.worker.isRunning():
             self.worker.stop()
             self.append_log("⏸️ Demande d'arrêt envoyée...")
+
+    def reset_form(self):
+        """Réinitialise les champs et l'état de l'interface."""
+        if self.worker and self.worker.isRunning():
+            QMessageBox.warning(self, "Réinitialisation impossible", "Arrêtez d'abord le traitement en cours.")
+            return
+
+        self.arch_line.clear()
+        self.archives_list.clear()
+        self.out_line.setText(self.default_output)
+        self.cleanup_chk.setChecked(True)
+        self.second_instance_chk.setChecked(False)
+        self.convert_before_open_chk.setChecked(False)
+        self.progress.setValue(0)
+        self.log.clear()
+        self.btn_run.setEnabled(True)
+        self.btn_stop.setEnabled(False)
 
     def on_finished_ok(self, msg: str):
         """Appelé quand le traitement se termine avec succès."""

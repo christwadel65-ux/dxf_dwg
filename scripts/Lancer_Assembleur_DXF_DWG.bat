@@ -14,14 +14,16 @@ echo  Chargement en cours...
 echo ========================================
 echo.
 
-:: Changer vers le dossier du script
+:: Changer vers le dossier du script, puis remonter à la racine
 cd /d "%~dp0"
+cd ..
 
 :: Vérifier si l'environnement virtuel existe
 if not exist ".venv\Scripts\python.exe" (
     color 0C
     echo [ERREUR] Environnement virtuel Python introuvable !
     echo.
+    echo Dossier courant : %CD%
     echo Le dossier .venv\Scripts\python.exe n'existe pas.
     echo Veuillez installer l'environnement virtuel avant de continuer.
     echo.
