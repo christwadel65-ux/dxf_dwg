@@ -1,0 +1,14 @@
+# Requirements pour Assembleur DXF -> DWG
+# Installation : pip install -r requirements.txt
+
+# Bibliothèque principale pour DXF
+ezdxf>=1.0.0
+
+# Interface graphique
+PyQt5>=5.15.0
+
+# Automation Windows pour AutoCAD
+pywin32>=305
+
+# Pour créer l'exécutable (optionnel)
+ pyinstaller>=5.0.0
