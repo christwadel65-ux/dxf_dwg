@@ -8,7 +8,7 @@ Application Windows pour :
 - Extraction automatique d'archives .tar.bz2 contenant des fichiers DXF
 - Fusion intelligente de multiples fichiers DXF en conservant les coordonnées géographiques
 - Nettoyage automatique des fichiers DXF (suppression d'éléments inutilisés)
-- Conversion DXF -> DWG directe via AutoCAD (option) ou ODA File Converter
+- Conversion DXF -> DWG directe via AutoCAD 
 - Ouverture automatique dans AutoCAD avec zoom étendu (instance courante ou seconde instance)
 - Menu d'aide intégré avec guide d'utilisation
 
@@ -97,8 +97,8 @@ Voir [docs/GUIDE_UTILISATION.md](docs/GUIDE_UTILISATION.md) pour des instruction
 
 ## 📄 Licence
 
-© 2025 C.L - Pour les amis de SPiE
+© 2025 C.L - 
 
 ## 🤝 Auteur
 
-**C.L** - (Skill teams))
+**C.L** - (Skill teams)
