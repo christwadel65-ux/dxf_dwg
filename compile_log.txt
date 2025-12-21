@@ -1,0 +1,38 @@
+125 INFO: PyInstaller: 6.17.0, contrib hooks: 2025.10
+126 INFO: Python: 3.14.2
+147 INFO: Platform: Windows-11-10.0.26200-SP0
+148 INFO: Python environment: C:\Users\cleco\AppData\Local\Programs\Python\Python314
+150 INFO: Removing temporary files and cleaning cache in C:\Users\cleco\AppData\Local\pyinstaller
+151 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Scripts\\pyinstaller.exe',
+ 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\python314.zip',
+ 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\DLLs',
+ 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib',
+ 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314',
+ 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages',
+ 'D:\\GitHub\\dxf_dwg']
+433 INFO: Appending 'datas' from .spec
+434 INFO: checking Analysis
+434 INFO: Building Analysis because Analysis-00.toc is non existent
+434 INFO: Looking for Python shared library...
+434 INFO: Using Python shared library: C:\Users\cleco\AppData\Local\Programs\Python\Python314\python314.dll
+434 INFO: Running Analysis Analysis-00.toc
+434 INFO: Target bytecode optimization level: 0
+434 INFO: Initializing module dependency graph...
+435 INFO: Initializing module graph hook caches...
+446 INFO: Analyzing modules for base_library.zip ...
+1762 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+2164 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+2477 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+2489 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+4651 INFO: Caching module dependency graph...
+4674 INFO: Analyzing D:\GitHub\dxf_dwg\assembleur_dxf_dwg.py
+4771 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+4772 INFO: SetuptoolsInfo: initializing cached setuptools info...
+7767 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+7849 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+8109 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+8113 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+8772 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+9646 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\PyInstaller\\hooks'
+11124 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 'C:\\Users\\cleco\\AppData\\Local\\Programs\\Python\\Python314\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'

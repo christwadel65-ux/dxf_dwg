@@ -149,6 +149,37 @@ def validate_dxf_file(filepath: str) -> Tuple[bool, Optional[str]]:
         return False, f"Fichier vide : {filepath}"
     
     try:
+        ezdxf.readfile(filepath)
+        return True, None
+    except Exception as e:
+        return False, f"Fichier DXF invalide: {e}"
+
+
+def check_autocad_available(convert_to_dwg: bool = False) -> Tuple[bool, Optional[str]]:
+    """Vérifie si AutoCAD est disponible via COM.
+    
+    Args:
+        convert_to_dwg: Si True, vérifie que AutoCAD peut convertir en DWG
+        
+    Returns:
+        Tuple (est_disponible, message_erreur)
+    """
+    if not convert_to_dwg:
+        return True, None
+    
+    try:
+        import win32com.client
+        try:
+            # Essayer une connexion rapide à AutoCAD
+            acad = win32com.client.Dispatch("AutoCAD.Application")
+            version = acad.Version
+            logger.info(f"AutoCAD disponible (version: {version})")
+            return True, None
+        except Exception as e:
+            return False, f"AutoCAD ne peut pas être contacté: {e}"
+    except ImportError:
+        return False, "Module win32com non installé (requis pour conversion DWG)"
+    try:
         doc = ezdxf.readfile(filepath)
         return True, None
     except Exception as e:
@@ -325,6 +356,13 @@ class Worker(QThread):
         try:
             import win32com.client
             
+            # Validation du fichier source
+            if not os.path.exists(filepath):
+                raise FileNotFoundError(f"Le fichier source n'existe pas: {filepath}")
+            
+            if os.path.getsize(filepath) == 0:
+                raise ValueError(f"Le fichier source est vide: {filepath}")
+            
             # Connexion à AutoCAD via COM
             try:
                 if use_second_instance:
@@ -333,9 +371,8 @@ class Worker(QThread):
                     self.log.emit("   🆕 Ouverture dans une seconde instance AutoCAD")
                 else:
                     acad = win32com.client.Dispatch("AutoCAD.Application")
-            except Exception:
-                # Si AutoCAD n'est pas en cours, on le démarre
-                acad = win32com.client.Dispatch("AutoCAD.Application")
+            except Exception as e:
+                raise RuntimeError(f"Impossible de se connecter à AutoCAD. Est-il installé?\nErreur: {e}")
             
             # Masquer AutoCAD pendant la conversion, afficher après
             acad.Visible = not convert_before_open
@@ -343,31 +380,65 @@ class Worker(QThread):
             
             target_path = filepath
             # Ouvrir le document (DXF)
-            doc = acad.Documents.Open(filepath)
-            self.log.emit(f"   📂 Document ouvert : {os.path.basename(filepath)}")
+            try:
+                doc = acad.Documents.Open(filepath)
+                self.log.emit(f"   📂 Document ouvert : {os.path.basename(filepath)}")
+            except Exception as e:
+                raise RuntimeError(f"Impossible d'ouvrir le fichier DXF dans AutoCAD: {e}")
             
             # Attendre que le document soit chargé
-            time.sleep(0.5)
+            time.sleep(1.0)
 
             # Conversion en DWG si demandé (via AutoCAD)
             if convert_before_open:
                 try:
                     dwg_path = str(Path(filepath).with_suffix(".dwg"))
-                    # SAVEAS 2018 vers DWG
-                    cmd = f'_.SAVEAS 2018 "{dwg_path}"\n'
-                    acad.ActiveDocument.SendCommand(cmd)
                     self.log.emit(f"   💾 Conversion DXF -> DWG demandée: {dwg_path}")
-                    time.sleep(1.5)
+                    
+                    # SAVEAS 2018 vers DWG (format AutoCAD 2018)
+                    # Utiliser _SAVEAS avec protocole de sauvegarde fiable
+                    cmd = f'_.SAVEAS _V 2018 "{dwg_path}"\n'
+                    acad.ActiveDocument.SendCommand(cmd)
+                    self.log.emit(f"   ⏳ Traitement de la sauvegarde DWG...")
+                    
+                    # Attendre que la sauvegarde soit terminée
+                    max_wait = 30  # max 30 secondes
+                    waited = 0
+                    dwg_created = False
+                    while waited < max_wait:
+                        time.sleep(0.5)
+                        waited += 0.5
+                        if os.path.exists(dwg_path) and os.path.getsize(dwg_path) > 1000:
+                            dwg_created = True
+                            self.log.emit(f"   ✅ Fichier DWG créé ({os.path.getsize(dwg_path)} octets)")
+                            break
+                    
+                    if not dwg_created:
+                        self.log.emit(f"   ⚠️ Fichier DWG non créé après 30 secondes. Vérifiez les permissions.")
+                    
+                    time.sleep(0.5)  # Petit délai supplémentaire
                     try:
                         doc.Close(False)
-                    except Exception:
-                        pass
-                    # Réouvrir le DWG pour zoom
-                    doc = acad.Documents.Open(dwg_path)
-                    target_path = dwg_path
-                    self.log.emit("   🔄 DWG réouvert pour le zoom")
+                    except Exception as e:
+                        self.log.emit(f"   ⚠️ Erreur fermeture DXF: {e}")
+                    
+                    # Réouvrir le DWG pour zoom si créé
+                    if dwg_created:
+                        try:
+                            doc = acad.Documents.Open(dwg_path)
+                            target_path = dwg_path
+                            self.log.emit("   🔄 DWG réouvert pour le zoom")
+                        except Exception as e:
+                            self.log.emit(f"   ⚠️ Impossible de rouvrir le DWG: {e}")
+                            target_path = filepath
+                    else:
+                        self.log.emit(f"   ⚠️ Conversion DWG échouée. Continuant avec le DXF...")
+                        target_path = filepath
+                        
                 except Exception as e:
-                    self.log.emit(f"   ⚠️ Conversion DWG via AutoCAD impossible: {e}")
+                    self.log.emit(f"   ⚠️ Erreur lors de la conversion DWG: {e}")
+                    target_path = filepath
+                    logger.error(f"Erreur conversion DWG: {e}", exc_info=True)
                 finally:
                     # Afficher AutoCAD après la conversion
                     acad.Visible = True
@@ -378,6 +449,7 @@ class Worker(QThread):
             # Effectuer un zoom étendu (ZOOM EXTENT)
             try:
                 acad.ActiveDocument.SendCommand("_.ZOOM _E \n")
+                time.sleep(0.5)  # Laisser le temps au zoom de se faire
                 self.log.emit("   🔍 Zoom étendu appliqué")
             except Exception as e:
                 self.log.emit(f"   ⚠️ Zoom étendu impossible: {e}")
@@ -385,11 +457,19 @@ class Worker(QThread):
         except ImportError:
             logger.warning("Module win32com non disponible")
             self.log.emit("   ⚠️ Module win32com non disponible, ouverture simple")
-            os.startfile(filepath)
+            try:
+                os.startfile(filepath)
+            except Exception as e:
+                self.log.emit(f"   ⚠️ Ouverture simple échouée: {e}")
         except Exception as e:
             logger.warning(f"Erreur contrôle AutoCAD: {e}", exc_info=True)
-            self.log.emit(f"   ⚠️ Erreur contrôle AutoCAD: {e}, ouverture simple")
-            os.startfile(filepath)
+            self.log.emit(f"   ⚠️ Erreur: {e}")
+            # Fallback: essayer juste d'ouvrir le fichier
+            try:
+                os.startfile(filepath)
+                self.log.emit(f"   ℹ️ Ouverture simple du fichier...")
+            except Exception as e2:
+                self.log.emit(f"   ❌ Impossible d'ouvrir le fichier: {e2}")
     
     def extract_dxf_only(self, archive_path: str, extract_dir: str) -> List[str]:
         """Extrait uniquement les fichiers .dxf de l'archive .tar.bz2, de façon sécurisée.
@@ -583,8 +663,13 @@ class Worker(QThread):
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Assembleur DXF → DWG - © C.L @ SpieCitynetwork")
+        self.setWindowTitle("Assembleur DXF → DWG - © C.L(Skill teams)")
         self.resize(600, 800)
+        
+        # Charger l'icône
+        icon_path = os.path.join(os.path.dirname(__file__), "config", "icon.ico")
+        if os.path.exists(icon_path):
+            self.setWindowIcon(QIcon(icon_path))
         
         self.worker = None
 
@@ -718,7 +803,7 @@ class MainWindow(QMainWindow):
         about_text = """
         <h2>Assembleur DXF → DWG</h2>
         <p><b>Version:</b> 1.0.0</p>
-        <p><b>Auteur:</b> © C.L @ SpieCitynetwork</p>
+        <p><b>Auteur:</b> © C.L (Skill Teams)</p>
         <hr>
         <p>Outil d'assemblage de fichiers DXF.</p>
         <p>Fonctionnalités principales :</p>
@@ -808,13 +893,23 @@ class MainWindow(QMainWindow):
                                 f"Impossible de créer/accéder au dossier : {output_folder}")
             return
 
+        do_cleanup = self.cleanup_chk.isChecked()
+        open_in_second_instance = self.second_instance_chk.isChecked()
+        convert_before_open = self.convert_before_open_chk.isChecked()
+        
+        # Vérifier AutoCAD si conversion DWG demandée
+        if convert_before_open:
+            acad_ok, acad_err = check_autocad_available(convert_to_dwg=True)
+            if not acad_ok:
+                QMessageBox.critical(self, "AutoCAD non disponible",
+                    f"La conversion en DWG nécessite AutoCAD.\n\n{acad_err}\n\n"
+                    "Désactivez l'option 'Convertir en DWG' ou installez AutoCAD et pywin32.")
+                return
+
         self.progress.setValue(0)
         self.log.clear()
         self.append_log("🔧 Lancement du traitement…")
 
-        do_cleanup = self.cleanup_chk.isChecked()
-        open_in_second_instance = self.second_instance_chk.isChecked()
-        convert_before_open = self.convert_before_open_chk.isChecked()
         self.worker = Worker(archive_folder, [], output_folder, do_cleanup, open_in_second_instance, convert_before_open)
         self.worker.log.connect(self.append_log)
         self.worker.progress.connect(self.progress.setValue)

@@ -1,16 +1,14 @@
 # Assembleur DXF → DWG
 
-Outil professionnel pour fusionner des fichiers DXF.
+Outil professionnel pour fusionner et convertir des fichiers DXF/DWG.
 
 ## 📋 Description
 
 Application Windows pour :
 - Extraction automatique d'archives .tar.bz2 contenant des fichiers DXF
 - Fusion intelligente de multiples fichiers DXF en conservant les coordonnées géographiques
-- Nettoyage automatique des fichiers DXF (suppression d'éléments inutilisés)
-- Conversion DXF -> DWG directe via AutoCAD 
-- Ouverture automatique dans AutoCAD avec zoom étendu (instance courante ou seconde instance)
-- Menu d'aide intégré avec guide d'utilisation
+- Conversion optionnelle en DWG via ODA File Converter
+- Ouverture automatique dans AutoCAD avec zoom étendu
 
 ## 🚀 Utilisation
 
@@ -56,49 +54,34 @@ dxf_dwg/
 
 ## 🔧 Fonctionnalités
 
-✅ Extraction automatique d'archives .tar.bz2  
-✅ Fusion de fichiers DXF avec conservation des coordonnées  
-✅ Nettoyage des DXF (suppression des blocs/styles/calques inutilisés)  
-✅ Validation automatique des fichiers DXF  
-✅ Ouverture automatique dans AutoCAD  
-✅ Option pour forcer une seconde instance AutoCAD  
-✅ Conversion DXF -> DWG avant l'ouverture AutoCAD (SAVEAS)  
-✅ Zoom étendu automatique  
-✅ Menu d'aide intégré avec guide d'utilisation  
-✅ Interface graphique moderne  
-✅ Gestion d'erreurs robuste  
-✅ Bouton d'annulation  
-✅ Nettoyage automatique des fichiers temporaires  
+✅ Extraction automatique d'archives .tar.bz2
+✅ Fusion de fichiers DXF avec conservation des coordonnées
+✅ Validation automatique des fichiers DXF
+✅ Conversion DWG via ODA File Converter
+✅ Ouverture automatique dans AutoCAD
+✅ Interface graphique moderne
+✅ Gestion d'erreurs robuste
+✅ Bouton d'annulation
+✅ Nettoyage automatique des fichiers temporaires
 
 ## 📝 Prérequis
 
 - **Python 3.8+** (pour le développement)
+- **ODA File Converter** (optionnel, pour conversion DWG)
 - **AutoCAD** (optionnel, pour ouverture automatique)
-- **pywin32** (automatiquement installé via requirements.txt)
 
 ## 🛠️ Technologies
 
-- **Python 3.8+** - Langage principal
+- **Python** - Langage principal
 - **PyQt5** - Interface graphique
 - **ezdxf** - Manipulation de fichiers DXF
 - **pywin32** - Automation AutoCAD
 - **PyInstaller** - Création d'exécutable
 
-## 📖 Documentation
-
-### Menu Aide (F1)
-Menu "Aide" en haut de la fenêtre :
-- **À propos (F1)** - Informations générales
-- **Guide d'utilisation** - Guide rapide des étapes principales
-- **Documentation** - Lien vers le guide complet
-
-### Guide d'utilisation détaillé
-Voir [docs/GUIDE_UTILISATION.md](docs/GUIDE_UTILISATION.md) pour des instructions complètes.
-
 ## 📄 Licence
 
-© 2025 C.L - 
+© 2025 C.L - Pour les amis de SPiE
 
 ## 🤝 Auteur
 
-**C.L** - (Skill teams)
+**C.L** - Développé pour les équipes SPiE

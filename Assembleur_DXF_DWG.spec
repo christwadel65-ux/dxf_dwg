@@ -5,8 +5,8 @@ a = Analysis(
     ['assembleur_dxf_dwg.py'],
     pathex=[],
     binaries=[],
-    datas=[('assembleur_dxf_dwg.py', '.')],
-    hiddenimports=['ezdxf', 'ezdxf.addons', 'PyQt5', 'win32com.client'],
+    datas=[('assembleur_dxf_dwg.py', '.'), ('config/icon.ico', 'config')],
+    hiddenimports=['ezdxf', 'ezdxf.addons', 'ezdxf.addons.dxf2code', 'ezdxf.lldxf', 'ezdxf.entities', 'PyQt5.QtCore', 'PyQt5.QtGui', 'PyQt5.QtWidgets', 'win32com.client', 'win32com'],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -35,4 +35,5 @@ exe = EXE(
     target_arch=None,
     codesign_identity=None,
     entitlements_file=None,
+    icon=['config\\icon.ico'],
 )
