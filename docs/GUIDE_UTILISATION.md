@@ -98,4 +98,4 @@ L'application propose un menu "Aide" en haut de la fenêtre avec :
 Pour toute question ou problème, consultez le journal des opérations qui contient des informations détaillées sur chaque étape du traitement.
 
 ---
-© 2025 C.L - Pour les amis de SPiE
+© 2025 C.L - (Skill Teams))
