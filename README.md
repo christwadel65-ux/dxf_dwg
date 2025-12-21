@@ -101,4 +101,4 @@ Voir [docs/GUIDE_UTILISATION.md](docs/GUIDE_UTILISATION.md) pour des instruction
 
 ## 🤝 Auteur
 
-**C.L** - Développé pour les équipes SPiE
+**C.L** - (Skill teams))
