@@ -56,19 +56,19 @@ dxf_dwg/
 
 ## 🔧 Fonctionnalités
 
-✅ Extraction automatique d'archives .tar.bz2
-✅ Fusion de fichiers DXF avec conservation des coordonnées
-✅ Nettoyage des DXF (suppression des blocs/styles/calques inutilisés)
-✅ Validation automatique des fichiers DXF
-✅ Ouverture automatique dans AutoCAD
-✅ Option pour forcer une seconde instance AutoCAD
-✅ Conversion DXF -> DWG avant l'ouverture AutoCAD (SAVEAS)
-✅ Zoom étendu automatique
-✅ Menu d'aide intégré avec guide d'utilisation
-✅ Interface graphique moderne
-✅ Gestion d'erreurs robuste
-✅ Bouton d'annulation
-✅ Nettoyage automatique des fichiers temporaires
+✅ Extraction automatique d'archives .tar.bz2  
+✅ Fusion de fichiers DXF avec conservation des coordonnées  
+✅ Nettoyage des DXF (suppression des blocs/styles/calques inutilisés)  
+✅ Validation automatique des fichiers DXF  
+✅ Ouverture automatique dans AutoCAD  
+✅ Option pour forcer une seconde instance AutoCAD  
+✅ Conversion DXF -> DWG avant l'ouverture AutoCAD (SAVEAS)  
+✅ Zoom étendu automatique  
+✅ Menu d'aide intégré avec guide d'utilisation  
+✅ Interface graphique moderne  
+✅ Gestion d'erreurs robuste  
+✅ Bouton d'annulation  
+✅ Nettoyage automatique des fichiers temporaires  
 
 ## 📝 Prérequis
 
