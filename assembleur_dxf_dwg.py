@@ -337,7 +337,8 @@ class Worker(QThread):
                 # Si AutoCAD n'est pas en cours, on le démarre
                 acad = win32com.client.Dispatch("AutoCAD.Application")
             
-            acad.Visible = True
+            # Masquer AutoCAD pendant la conversion, afficher après
+            acad.Visible = not convert_before_open
             self.log.emit("   📐 AutoCAD connecté")
             
             target_path = filepath
@@ -367,6 +368,9 @@ class Worker(QThread):
                     self.log.emit("   🔄 DWG réouvert pour le zoom")
                 except Exception as e:
                     self.log.emit(f"   ⚠️ Conversion DWG via AutoCAD impossible: {e}")
+                finally:
+                    # Afficher AutoCAD après la conversion
+                    acad.Visible = True
 
             # Rester en espace objet (Model)
             self.log.emit("   📦 Espace objet (Model)")
