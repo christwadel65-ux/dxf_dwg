@@ -80,8 +80,8 @@ dxf_dwg/
 
 ## 📄 Licence
 
-© 2025 C.L - Pour les amis de SPiE
+© 2025 MIT - 
 
 ## 🤝 Auteur
 
-**C.L** - Développé pour les équipes SPiE
+**C.L** - 
