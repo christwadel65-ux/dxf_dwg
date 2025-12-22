@@ -7,7 +7,7 @@ Outil professionnel pour fusionner et convertir des fichiers DXF/DWG.
 Application Windows pour :
 - Extraction automatique d'archives .tar.bz2 contenant des fichiers DXF
 - Fusion intelligente de multiples fichiers DXF en conservant les coordonnées géographiques
-- Conversion optionnelle en DWG via ODA File Converter
+- Conversion optionnelle en DWG via autocad(doit etre installer)
 - Ouverture automatique dans AutoCAD avec zoom étendu
 
 ## 🚀 Utilisation
