@@ -54,14 +54,14 @@ dxf_dwg/
 
 ## 🔧 Fonctionnalités
 
-✅ Extraction automatique d'archives .tar.bz2
-✅ Fusion de fichiers DXF avec conservation des coordonnées
-✅ Validation automatique des fichiers DXF
-✅ Conversion DWG (via AutoCAD)
-✅ Ouverture automatique dans AutoCAD
-✅ Interface graphique moderne
-✅ Gestion d'erreurs robuste
-✅ Bouton d'annulation
+✅ Extraction automatique d'archives .tar.bz2  
+✅ Fusion de fichiers DXF avec conservation des coordonnées  
+✅ Validation automatique des fichiers DXF  
+✅ Conversion DWG (via AutoCAD)  
+✅ Ouverture automatique dans AutoCAD  
+✅ Interface graphique moderne  
+✅ Gestion d'erreurs robuste  
+✅ Bouton d'annulation  
 ✅ Nettoyage automatique des fichiers temporaires
 
 ## 📝 Prérequis
