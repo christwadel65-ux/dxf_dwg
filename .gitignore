@@ -1,0 +1,29 @@
+# Dossiers de compilation et distribution
+build/
+dist/
+*.spec
+
+# Environnement virtuel
+.venv/
+venv/
+ENV/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+compile_log.txt
