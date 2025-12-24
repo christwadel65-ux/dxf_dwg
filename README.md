@@ -2,7 +2,8 @@
 
 Outil professionnel pour fusionner et convertir des fichiers DXF/DWG.
 
-<img width="400" height="600" alt="image" src="https://github.com/user-attachments/assets/73a0c997-558f-4945-8373-ce62527141a4" />
+<img width="350" height="700" alt="image" src="https://github.com/user-attachments/assets/64f23e3e-4249-43e0-937f-0e8e5283e9e0" />
+
 
 ## 📋 Description
 
