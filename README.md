@@ -80,10 +80,8 @@ dxf_dwg/
 - **pywin32** - Automation AutoCAD
 - **PyInstaller** - Création d'exécutable
 
-## 📄 Licence
+📄 Licence
+© 2025 Easycoding 
 
-© 2025 C.L - Pour les amis de SPiE
-
-## 🤝 Auteur
-
-**C.L** 
+🤝 Auteur
+easycoding.fr
