@@ -2,7 +2,8 @@
 
 **Version 1.0.2** - Outil professionnel pour fusionner et convertir des fichiers DXF/DWG.
 
-<img width="350" height="700" alt="image" src="https://github.com/user-attachments/assets/64f23e3e-4249-43e0-937f-0e8e5283e9e0" />
+<img width="582" height="830" alt="image" src="https://github.com/user-attachments/assets/935309b5-86cc-4db7-93fc-50dae7b8cad7" />
+
 
 ## 📋 Description
 
